@@ -1,0 +1,2 @@
+# newsbrief
+scopelp-newsbrief
