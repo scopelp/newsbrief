@@ -444,3 +444,205 @@ class FinancialNewsletterBot:
                     margin: 0 0 8px 0;
                     color: #1a1a1a;
                 }}
+                .article-summary {{
+                    color: #536471;
+                    margin: 8px 0 12px 0;
+                    font-size: 14px;
+                }}
+                .article-meta {{
+                    font-size: 12px;
+                    color: #8b98a5;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .read-more {{
+                    color: #1d9bf0;
+                    text-decoration: none;
+                    font-weight: 500;
+                    font-size: 13px;
+                }}
+                .read-more:hover {{
+                    text-decoration: underline;
+                }}
+                .footer {{
+                    text-align: center;
+                    padding: 30px 20px;
+                    border-top: 1px solid #e1e8ed;
+                    color: #8b98a5;
+                    font-size: 12px;
+                }}
+                .category-divider {{
+                    margin: 40px 0 30px 0;
+                    text-align: center;
+                }}
+                .category-divider::before {{
+                    content: '';
+                    display: inline-block;
+                    width: 50px;
+                    height: 1px;
+                    background: #e1e8ed;
+                    margin-right: 15px;
+                    vertical-align: middle;
+                }}
+                .category-divider::after {{
+                    content: '';
+                    display: inline-block;
+                    width: 50px;
+                    height: 1px;
+                    background: #e1e8ed;
+                    margin-left: 15px;
+                    vertical-align: middle;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>📊 NewsBrief by ScopeLP</h1>
+                <div class="date">{current_date}</div>
+            </div>
+            
+            <div class="greeting">
+                <strong>Good Morning,</strong><br><br>
+                Today's brief covers {total_articles} key stories in private equity monitoring, venture capital, and portfolio developments. 
+                Curated specifically for PE professionals and investors.
+            </div>
+            
+            {self.format_market_data(market_data)}
+        """
+        
+        # Add categorized content
+        category_order = ['Private Equity', 'Venture Capital', 'IPO/Exits', 'M&A', 'Fund News', 'Portfolio', 'Industry News']
+        
+        for category in category_order:
+            if category in categorized_articles and categorized_articles[category]:
+                html_content += f"""
+                <div class="section">
+                    <h2>{self.get_category_emoji(category)} {category}</h2>
+                """
+                
+                for article in categorized_articles[category][:6]:  # Max 6 per category
+                    html_content += f"""
+                    <div class="article">
+                        <div class="article-title">{article['title']}</div>
+                        <div class="article-summary">{article['summary']}</div>
+                        <div class="article-meta">
+                            <span>📍 {article['source']}</span>
+                            <a href="{article['link']}" class="read-more" target="_blank">Read more →</a>
+                        </div>
+                    </div>
+                    """
+                
+                html_content += "</div>"
+                
+                # Add divider between categories
+                if category != category_order[-1]:
+                    html_content += '<div class="category-divider"></div>'
+        
+        html_content += """
+            <div class="footer">
+                <p>📊 NewsBrief by ScopeLP - Private Equity Intelligence<br>
+                Automated monitoring and analysis for PE professionals.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html_content
+    
+    def get_category_emoji(self, category):
+        """Get emoji for PE/VC categories"""
+        emojis = {
+            'Private Equity': '🏢',
+            'Venture Capital': '🚀',
+            'IPO/Exits': '📈',
+            'M&A': '🤝',
+            'Fund News': '💰',
+            'Portfolio': '📊',
+            'Industry News': '📰'
+        }
+        return emojis.get(category, '📰')
+    
+    def send_email(self, html_content):
+        """Send the newsletter email via PrivateEmail.com"""
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"📊 NewsBrief by ScopeLP - {datetime.now().strftime('%B %d, %Y')}"
+            msg['From'] = self.sender_email
+            msg['To'] = self.recipient_email
+            
+            # Create HTML part
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(html_part)
+            
+            # Try multiple PrivateEmail.com SMTP configurations
+            smtp_configs = [
+                ('mail.privateemail.com', 587, True),    # STARTTLS (most common)
+                ('mail.privateemail.com', 465, False),   # SSL
+                ('smtp.privateemail.com', 587, True),    # Alternative server
+                ('smtp.privateemail.com', 465, False),   # Alternative server SSL
+            ]
+            
+            for server, port, use_starttls in smtp_configs:
+                try:
+                    if use_starttls:
+                        # STARTTLS configuration
+                        with smtplib.SMTP(server, port) as smtp_server:
+                            smtp_server.starttls()
+                            smtp_server.login(self.sender_email, self.sender_password)
+                            smtp_server.send_message(msg)
+                    else:
+                        # SSL configuration
+                        with smtplib.SMTP_SSL(server, port) as smtp_server:
+                            smtp_server.login(self.sender_email, self.sender_password)
+                            smtp_server.send_message(msg)
+                    
+                    print(f"✅ NewsBrief sent successfully via {server}:{port} at {datetime.now()}")
+                    return
+                    
+                except Exception as e:
+                    print(f"❌ Failed with {server}:{port} - {e}")
+                    continue
+            
+            print("❌ All PrivateEmail.com SMTP configurations failed")
+            
+        except Exception as e:
+            print(f"❌ Error sending email: {e}")
+    
+    def generate_and_send_newsletter(self):
+        """Main function to create and send newsletter"""
+        print("📊 Generating NewsBrief by ScopeLP...")
+        
+        # Fetch market data
+        market_data = self.get_market_data()
+        
+        # Fetch financial news
+        categorized_articles = self.fetch_financial_news()
+        
+        if categorized_articles:
+            html_content = self.create_newsletter_html(categorized_articles, market_data)
+            self.send_email(html_content)
+        else:
+            print("⚠️ No articles found. Newsletter not sent.")
+
+def main():
+    newsletter_bot = FinancialNewsletterBot()
+    
+    # For GitHub Actions - run once
+    if os.getenv('GITHUB_ACTIONS'):
+        newsletter_bot.generate_and_send_newsletter()
+    else:
+        # For local development - schedule daily
+        schedule.every().day.at("07:00").do(newsletter_bot.generate_and_send_newsletter)
+        
+        print("🚀 NewsBrief by ScopeLP started. Next newsletter: 7:00 AM daily")
+        
+        # Uncomment to test immediately:
+        # newsletter_bot.generate_and_send_newsletter()
+        
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+
+if __name__ == "__main__":
+    main()
