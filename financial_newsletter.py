@@ -34,8 +34,8 @@ class FinancialNewsletterBot:
             'CNBC': 'https://www.cnbc.com/id/100003114/device/rss/rss.html'
         }
         
-        # PE/VC relevant market indicators (enhanced for global view)
-        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TNX', 'GLD', 'DXY', 'CL=F']
+        # PE/VC relevant market indicators (updated selection)
+        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
         
         # Comprehensive PE/VC keywords for better filtering
         self.pe_vc_keywords = [
@@ -483,7 +483,6 @@ class FinancialNewsletterBot:
             'VTI': 'US Total Market',
             'EFA': 'Developed Markets',
             'EEM': 'Emerging Markets',
-            'VNQ': 'US REITs',
             'TNX': '10-Year Treasury',
             'GLD': 'Gold',
             'DXY': 'US Dollar Index',
@@ -491,7 +490,7 @@ class FinancialNewsletterBot:
         }
         
         # Define order for consistent display
-        symbol_order = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TNX', 'GLD', 'DXY', 'CL=F']
+        symbol_order = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
         
         for symbol in symbol_order:
             if symbol in market_data:
@@ -518,14 +517,26 @@ class FinancialNewsletterBot:
                 else:
                     price_display = f"${price:.2f}"
                 
-                html += f"""
-                    <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
-                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
-                        <div style="color: {daily_color}; font-size: 12px; font-weight: 500; margin-bottom: 4px;">{daily_arrow} {change_pct:+.1f}%</div>
-                        <div style="color: {ytd_color}; font-size: 10px; font-weight: 500;">YTD: {ytd_pct:+.1f}%</div>
-                    </div>
-                """
+                # Show YTD only for equity indices and commodities (not TNX and DXY)
+                if symbol in ['TNX', 'DXY']:
+                    # Treasury and Dollar - closing price only
+                    html += f"""
+                        <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
+                            <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
+                            <div style="color: {daily_color}; font-size: 12px; font-weight: 500;">{daily_arrow} {change_pct:+.1f}%</div>
+                        </div>
+                    """
+                else:
+                    # Equity indices and commodities - show YTD
+                    html += f"""
+                        <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
+                            <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
+                            <div style="color: {daily_color}; font-size: 12px; font-weight: 500; margin-bottom: 4px;">{daily_arrow} {change_pct:+.1f}%</div>
+                            <div style="color: {ytd_color}; font-size: 10px; font-weight: 500;">YTD: {ytd_pct:+.1f}%</div>
+                        </div>
+                    """
             else:
                 # Show placeholder for missing symbols
                 display_name = market_labels.get(symbol, symbol)
