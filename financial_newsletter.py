@@ -34,8 +34,8 @@ class FinancialNewsletterBot:
             'CNBC': 'https://www.cnbc.com/id/100003114/device/rss/rss.html'
         }
         
-        # PE/VC relevant market indicators (expanded for global view)
-        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TLT', 'HYG', 'GLD', 'DXY']
+        # PE/VC relevant market indicators (enhanced for global view)
+        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TNX', 'GLD', 'DXY', 'CL=F']
         
         # Comprehensive PE/VC keywords for better filtering
         self.pe_vc_keywords = [
@@ -86,7 +86,7 @@ class FinancialNewsletterBot:
         ]
     
     def get_market_data(self):
-        """Fetch current market data with enhanced error handling"""
+        """Fetch current market data with YTD performance"""
         try:
             market_data = {}
             print("📊 Fetching market data...")
@@ -94,7 +94,7 @@ class FinancialNewsletterBot:
             for symbol in self.market_symbols:
                 try:
                     # Yahoo Finance API with multiple attempts
-                    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+                    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1y&interval=1d"
                     headers = {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     }
@@ -107,8 +107,29 @@ class FinancialNewsletterBot:
                         if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
                             result = data['chart']['result'][0]
                             meta = result['meta']
+                            timestamps = result['timestamp']
+                            prices = result['indicators']['quote'][0]['close']
+                            
+                            # Current price
                             current_price = meta.get('regularMarketPrice', 0)
                             prev_close = meta.get('previousClose', 0)
+                            
+                            # Calculate YTD performance
+                            ytd_change_pct = 0
+                            if timestamps and prices:
+                                # Find January 1st price (approximate)
+                                current_year = datetime.now().year
+                                jan_1_timestamp = datetime(current_year, 1, 1).timestamp()
+                                
+                                # Find closest price to January 1st
+                                ytd_start_price = None
+                                for i, ts in enumerate(timestamps):
+                                    if ts >= jan_1_timestamp and prices[i] is not None:
+                                        ytd_start_price = prices[i]
+                                        break
+                                
+                                if ytd_start_price and current_price:
+                                    ytd_change_pct = ((current_price - ytd_start_price) / ytd_start_price) * 100
                             
                             if current_price and prev_close:
                                 change = current_price - prev_close
@@ -117,9 +138,10 @@ class FinancialNewsletterBot:
                                 market_data[symbol] = {
                                     'price': current_price,
                                     'change': change,
-                                    'change_pct': change_pct
+                                    'change_pct': change_pct,
+                                    'ytd_pct': ytd_change_pct
                                 }
-                                print(f"✅ {symbol}: ${current_price:.2f} ({change_pct:+.1f}%)")
+                                print(f"✅ {symbol}: ${current_price:.2f} ({change_pct:+.1f}% | YTD: {ytd_change_pct:+.1f}%)")
                             else:
                                 print(f"⚠️ {symbol}: Invalid price data")
                         else:
@@ -146,16 +168,16 @@ class FinancialNewsletterBot:
         """Provide fallback market data if APIs fail"""
         print("📊 Using fallback market data...")
         fallback_data = {
-            'SPY': {'price': 525.00, 'change': 2.50, 'change_pct': 0.48},
-            'QQQ': {'price': 445.00, 'change': -1.20, 'change_pct': -0.27},
-            'VTI': {'price': 245.00, 'change': 1.10, 'change_pct': 0.45},
-            'EFA': {'price': 78.50, 'change': 0.30, 'change_pct': 0.38},
-            'EEM': {'price': 42.20, 'change': -0.15, 'change_pct': -0.35},
-            'VNQ': {'price': 95.80, 'change': 0.70, 'change_pct': 0.74},
-            'TLT': {'price': 125.30, 'change': -0.40, 'change_pct': -0.32},
-            'HYG': {'price': 82.10, 'change': 0.20, 'change_pct': 0.24},
-            'GLD': {'price': 201.50, 'change': 1.80, 'change_pct': 0.90},
-            'DXY': {'price': 103.20, 'change': 0.10, 'change_pct': 0.10}
+            'SPY': {'price': 525.00, 'change': 2.50, 'change_pct': 0.48, 'ytd_pct': 12.5},
+            'QQQ': {'price': 445.00, 'change': -1.20, 'change_pct': -0.27, 'ytd_pct': 18.2},
+            'VTI': {'price': 245.00, 'change': 1.10, 'change_pct': 0.45, 'ytd_pct': 11.8},
+            'EFA': {'price': 78.50, 'change': 0.30, 'change_pct': 0.38, 'ytd_pct': 8.1},
+            'EEM': {'price': 42.20, 'change': -0.15, 'change_pct': -0.35, 'ytd_pct': 5.2},
+            'VNQ': {'price': 95.80, 'change': 0.70, 'change_pct': 0.74, 'ytd_pct': -2.1},
+            'TNX': {'price': 4.25, 'change': -0.02, 'change_pct': -0.47, 'ytd_pct': 15.5},
+            'GLD': {'price': 201.50, 'change': 1.80, 'change_pct': 0.90, 'ytd_pct': 28.3},
+            'DXY': {'price': 103.20, 'change': 0.10, 'change_pct': 0.10, 'ytd_pct': 2.8},
+            'CL=F': {'price': 68.50, 'change': 0.85, 'change_pct': 1.26, 'ytd_pct': -8.2}
         }
         return fallback_data
     
@@ -420,7 +442,7 @@ class FinancialNewsletterBot:
         return sorted(articles, key=pe_vc_score, reverse=True)
     
     def format_market_data(self, market_data):
-        """Format global market data for email with fallback"""
+        """Format global market data as columns with YTD performance"""
         if not market_data:
             print("⚠️ No market data available, showing placeholder")
             return """
@@ -435,7 +457,7 @@ class FinancialNewsletterBot:
         html = """
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #333; margin: 0 0 15px 0;">🌍 Global Markets Overview</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
         """
         
         # Enhanced market labels for global view
@@ -446,31 +468,51 @@ class FinancialNewsletterBot:
             'EFA': 'Developed Markets',
             'EEM': 'Emerging Markets',
             'VNQ': 'US REITs',
-            'TLT': '20+ Year Treasury',
-            'HYG': 'High Yield Bonds',
+            'TNX': '10-Year Treasury',
             'GLD': 'Gold',
-            'DXY': 'US Dollar Index'
+            'DXY': 'US Dollar Index',
+            'CL=F': 'Oil (WTI)'
         }
         
-        for symbol, data in market_data.items():
-            price = data.get('price', 0)
-            change = data.get('change', 0)
-            change_pct = data.get('change_pct', 0)
-            
-            color = "#28a745" if change >= 0 else "#dc3545"
-            arrow = "↗" if change >= 0 else "↘"
-            display_name = market_labels.get(symbol, symbol)
-            
-            html += f"""
-                <div style="text-align: center; padding: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 4px;">{display_name}</div>
-                    <div style="font-size: 15px; font-weight: 600; margin-bottom: 2px;">${price:.2f}</div>
-                    <div style="color: {color}; font-size: 12px; font-weight: 500;">{arrow} {change_pct:+.1f}%</div>
-                </div>
-            """
+        # Define order for consistent display
+        symbol_order = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TNX', 'GLD', 'DXY', 'CL=F']
+        
+        for symbol in symbol_order:
+            if symbol in market_data:
+                data = market_data[symbol]
+                price = data.get('price', 0)
+                change = data.get('change', 0)
+                change_pct = data.get('change_pct', 0)
+                ytd_pct = data.get('ytd_pct', 0)
+                
+                # Color coding for daily change
+                daily_color = "#28a745" if change >= 0 else "#dc3545"
+                daily_arrow = "↗" if change >= 0 else "↘"
+                
+                # Color coding for YTD performance
+                ytd_color = "#28a745" if ytd_pct >= 0 else "#dc3545"
+                
+                display_name = market_labels.get(symbol, symbol)
+                
+                # Format price based on symbol type
+                if symbol == 'TNX':
+                    price_display = f"{price:.2f}%"
+                elif symbol in ['DXY']:
+                    price_display = f"{price:.2f}"
+                else:
+                    price_display = f"${price:.2f}"
+                
+                html += f"""
+                    <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
+                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
+                        <div style="color: {daily_color}; font-size: 12px; font-weight: 500; margin-bottom: 4px;">{daily_arrow} {change_pct:+.1f}%</div>
+                        <div style="color: {ytd_color}; font-size: 10px; font-weight: 500;">YTD: {ytd_pct:+.1f}%</div>
+                    </div>
+                """
         
         html += "</div></div>"
-        print("✅ Market data grid formatted successfully")
+        print("✅ Market data grid formatted as columns with YTD")
         return html
     
     def create_newsletter_html(self, categorized_articles, market_data):
