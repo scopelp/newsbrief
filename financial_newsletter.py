@@ -23,16 +23,20 @@ class FinancialNewsletterBot:
             'Private Equity Wire': 'https://www.privateequitywire.co.uk/feed/',
             'Financial Times': 'https://www.ft.com/rss/home/us',
             'Wall Street Journal': 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
+            'Bloomberg Markets': 'https://feeds.bloomberg.com/markets/news.rss',
+            'Bloomberg Business': 'https://feeds.bloomberg.com/politics/news.rss',
             'Private Capital Journal': 'https://www.privatecapitaljournal.com/feed/',
             'Private Equity International': 'https://www.privateequityinternational.com/feed/',
             'Reuters Business': 'https://feeds.reuters.com/reuters/businessNews',
+            'Reuters Markets': 'https://feeds.reuters.com/reuters/marketsNews',
             'PE Hub': 'https://www.pehub.com/feed/',
             'PitchBook News': 'https://pitchbook.com/rss/news',
-            'TechCrunch Startups': 'https://techcrunch.com/category/startups/feed/'
+            'TechCrunch Startups': 'https://techcrunch.com/category/startups/feed/',
+            'CNBC': 'https://www.cnbc.com/id/100003114/device/rss/rss.html'
         }
         
-        # PE/VC relevant market indicators (no crypto)
-        self.market_symbols = ['SPY', 'QQQ', 'VTEB', 'VTI', 'QUAL', 'MTUM']
+        # PE/VC relevant market indicators (expanded for global view)
+        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'VNQ', 'TLT', 'HYG', 'GLD', 'DXY']
         
         # Comprehensive PE/VC keywords for better filtering
         self.pe_vc_keywords = [
@@ -174,7 +178,12 @@ class FinancialNewsletterBot:
             'Private Capital Journal': 'https://privatecapitaljournal.com/rss',
             'Private Equity International': 'https://privateequityinternational.com/rss',
             'Financial Times': 'https://www.ft.com/rss/companies',
-            'Wall Street Journal': 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml'
+            'Wall Street Journal': 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml',
+            'Bloomberg Markets': 'https://feeds.bloomberg.com/bpolitics/news.rss',
+            'Bloomberg Business': 'https://feeds.bloomberg.com/technology/news.rss',
+            'Reuters Business': 'https://feeds.reuters.com/reuters/companyNews',
+            'Reuters Markets': 'https://feeds.reuters.com/reuters/JPbusiness',
+            'CNBC': 'https://www.cnbc.com/id/100727362/device/rss/rss.html'
         }
         return alternatives.get(source_name)
     
@@ -186,9 +195,13 @@ class FinancialNewsletterBot:
             'Private Capital Journal': 10,
             'Financial Times': 9,
             'Wall Street Journal': 9,
+            'Bloomberg Markets': 9,
+            'Bloomberg Business': 9,
+            'Reuters Business': 8,
+            'Reuters Markets': 8,
             'PE Hub': 8,
             'PitchBook News': 8,
-            'Reuters Business': 7,
+            'CNBC': 7,
             'TechCrunch Startups': 6
         }
         return priority_map.get(source_name, 5)
@@ -239,24 +252,43 @@ class FinancialNewsletterBot:
         return (pe_vc_match or additional_match) and not exclude_match
     
     def categorize_article(self, text):
-        """Categorize articles with PE/VC focus"""
+        """Categorize articles with PE/VC focus - new structure"""
         text_lower = text.lower()
         
-        # PE specific categories
-        if any(word in text_lower for word in ['buyout', 'lbo', 'leveraged buyout', 'take private', 'private equity']):
+        # Private Equity deals and buyouts
+        if any(word in text_lower for word in ['buyout', 'lbo', 'leveraged buyout', 'take private', 'private equity', 'pe firm', 'portfolio company acquisition']):
             return 'Private Equity'
-        elif any(word in text_lower for word in ['venture capital', 'vc', 'startup', 'series a', 'series b', 'series c', 'seed funding']):
+        
+        # Venture Capital funding rounds
+        elif any(word in text_lower for word in ['venture capital', 'vc', 'startup funding', 'series a', 'series b', 'series c', 'seed funding', 'pre-seed', 'growth round']):
             return 'Venture Capital'
-        elif any(word in text_lower for word in ['ipo', 'public offering', 'listing', 'debut', 'exit']):
-            return 'IPO/Exits'
+        
+        # IPOs and public offerings
+        elif any(word in text_lower for word in ['ipo', 'public offering', 'listing', 'debut', 'going public', 'spac']):
+            return 'IPOs'
+        
+        # Fund raising and LP activity
+        elif any(word in text_lower for word in ['fund raising', 'fundraising', 'capital raise', 'fund close', 'limited partners', 'lp', 'fund launch', 'first close', 'final close']):
+            return 'Fundraising'
+        
+        # Bankruptcy and distressed situations
+        elif any(word in text_lower for word in ['bankruptcy', 'chapter 11', 'distressed', 'restructuring', 'liquidation', 'insolvency', 'creditor', 'debtor']):
+            return 'Bankruptcy'
+        
+        # PE Secondaries market
+        elif any(word in text_lower for word in ['secondary', 'secondaries', 'continuation fund', 'gp-led', 'lp-led', 'process sale', 'portfolio sale']):
+            return 'PE Secondaries'
+        
+        # Global Markets (broad market news)
+        elif any(word in text_lower for word in ['market', 'stock market', 'trading', 'index', 'bond', 'commodity', 'currency', 'fed', 'central bank', 'interest rate']):
+            return 'Global Markets'
+        
+        # General deal activity
         elif any(word in text_lower for word in ['m&a', 'merger', 'acquisition', 'takeover', 'deal']):
-            return 'M&A'
-        elif any(word in text_lower for word in ['fund', 'fundraising', 'capital raise', 'limited partners']):
-            return 'Fund News'
-        elif any(word in text_lower for word in ['portfolio company', 'portco', 'investment', 'growth capital']):
-            return 'Portfolio'
+            return 'Private Equity'  # Default M&A to PE section
+        
         else:
-            return 'Industry News'
+            return 'Global Markets'  # Default to markets section
     
     def remove_duplicates(self, articles):
         """Remove duplicate articles based on title similarity"""
@@ -339,24 +371,28 @@ class FinancialNewsletterBot:
         return sorted(articles, key=pe_vc_score, reverse=True)
     
     def format_market_data(self, market_data):
-        """Format market data for email (PE/VC relevant indices)"""
+        """Format global market data for email"""
         if not market_data:
             return "<p>Market data unavailable</p>"
         
         html = """
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #333; margin: 0 0 15px 0;">📊 Market Snapshot (PE/VC Relevant)</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #333; margin: 0 0 15px 0;">🌍 Global Markets Overview</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
         """
         
-        # Market labels for PE/VC context
+        # Enhanced market labels for global view
         market_labels = {
             'SPY': 'S&P 500',
             'QQQ': 'Nasdaq',
-            'VTEB': 'Tax-Exempt Bonds',
-            'VTI': 'Total Stock Market',
-            'QUAL': 'Quality Factor',
-            'MTUM': 'Momentum Factor'
+            'VTI': 'US Total Market',
+            'EFA': 'Developed Markets',
+            'EEM': 'Emerging Markets',
+            'VNQ': 'US REITs',
+            'TLT': '20+ Year Treasury',
+            'HYG': 'High Yield Bonds',
+            'GLD': 'Gold',
+            'DXY': 'US Dollar Index'
         }
         
         for symbol, data in market_data.items():
@@ -369,10 +405,10 @@ class FinancialNewsletterBot:
             display_name = market_labels.get(symbol, symbol)
             
             html += f"""
-                <div style="text-align: center; padding: 8px; background: white; border-radius: 4px;">
-                    <div style="font-weight: bold; font-size: 12px;">{display_name}</div>
-                    <div style="font-size: 14px;">${price:.2f}</div>
-                    <div style="color: {color}; font-size: 11px;">{arrow} {change_pct:+.1f}%</div>
+                <div style="text-align: center; padding: 10px; background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 4px;">{display_name}</div>
+                    <div style="font-size: 15px; font-weight: 600; margin-bottom: 2px;">${price:.2f}</div>
+                    <div style="color: {color}; font-size: 12px; font-weight: 500;">{arrow} {change_pct:+.1f}%</div>
                 </div>
             """
         
@@ -504,24 +540,38 @@ class FinancialNewsletterBot:
             
             <div class="greeting">
                 <strong>Good Morning,</strong><br><br>
-                Today's brief covers {total_articles} key stories in private equity monitoring, venture capital, and portfolio developments. 
-                Curated specifically for PE professionals and investors.
+                Today's brief covers {total_articles} key stories across global markets and private capital deals. 
+                Organized by market overview, then deal flow across PE, VC, IPOs, fundraising, distressed situations, and secondaries.
             </div>
             
             {self.format_market_data(market_data)}
         """
         
-        # Add categorized content
-        category_order = ['Private Equity', 'Venture Capital', 'IPO/Exits', 'M&A', 'Fund News', 'Portfolio', 'Industry News']
+        # Add categorized content in new structure
+        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'IPOs', 'Fundraising', 'Bankruptcy', 'PE Secondaries']
         
         for category in category_order:
             if category in categorized_articles and categorized_articles[category]:
+                # Special handling for Global Markets section
+                if category == 'Global Markets':
+                    article_limit = 8  # More articles for markets overview
+                    section_description = "Market movements, economic indicators, and macro trends affecting PE/VC markets"
+                else:
+                    article_limit = 6  # Standard limit for deal sections
+                    section_description = ""
+                
                 html_content += f"""
                 <div class="section">
                     <h2>{self.get_category_emoji(category)} {category}</h2>
                 """
                 
-                for article in categorized_articles[category][:6]:  # Max 6 per category
+                # Add section description for Global Markets
+                if section_description:
+                    html_content += f"""
+                    <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
+                    """
+                
+                for article in categorized_articles[category][:article_limit]:
                     html_content += f"""
                     <div class="article">
                         <div class="article-title">{article['title']}</div>
@@ -535,8 +585,8 @@ class FinancialNewsletterBot:
                 
                 html_content += "</div>"
                 
-                # Add divider between categories
-                if category != category_order[-1]:
+                # Add divider between categories (except last one)
+                if category != category_order[-1] and category_order.index(category) < len(category_order) - 1:
                     html_content += '<div class="category-divider"></div>'
         
         html_content += """
@@ -551,15 +601,15 @@ class FinancialNewsletterBot:
         return html_content
     
     def get_category_emoji(self, category):
-        """Get emoji for PE/VC categories"""
+        """Get emoji for deal-focused categories"""
         emojis = {
+            'Global Markets': '🌍',
             'Private Equity': '🏢',
             'Venture Capital': '🚀',
-            'IPO/Exits': '📈',
-            'M&A': '🤝',
-            'Fund News': '💰',
-            'Portfolio': '📊',
-            'Industry News': '📰'
+            'IPOs': '📈',
+            'Fundraising': '💰',
+            'Bankruptcy': '⚠️',
+            'PE Secondaries': '🔄'
         }
         return emojis.get(category, '📰')
     
