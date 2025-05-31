@@ -86,17 +86,17 @@ class FinancialNewsletterBot:
         ]
     
     def get_market_data(self):
-        """Fetch current market data with YTD performance"""
+        """Fetch closing prices from the last trading date with YTD performance"""
         try:
             market_data = {}
-            print("📊 Fetching market data...")
+            print("📊 Fetching closing prices and YTD performance...")
             
             for symbol in self.market_symbols:
                 try:
-                    # Yahoo Finance API with multiple attempts
+                    # Get 1 year of data to calculate YTD performance accurately
                     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1y&interval=1d"
                     headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                     }
                     
                     response = requests.get(url, headers=headers, timeout=15)
@@ -106,80 +106,81 @@ class FinancialNewsletterBot:
                         data = response.json()
                         if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
                             result = data['chart']['result'][0]
-                            meta = result['meta']
-                            timestamps = result['timestamp']
-                            prices = result['indicators']['quote'][0]['close']
                             
-                            # Current price
-                            current_price = meta.get('regularMarketPrice', 0)
-                            prev_close = meta.get('previousClose', 0)
+                            # Get trading timestamps and closing prices
+                            timestamps = result.get('timestamp', [])
+                            prices_data = result.get('indicators', {}).get('quote', [{}])[0]
+                            close_prices = prices_data.get('close', [])
                             
-                            # Calculate YTD performance
-                            ytd_change_pct = 0
-                            if timestamps and prices:
-                                # Find January 1st price (approximate)
+                            if timestamps and close_prices:
+                                # Find the last two valid trading days for comparison
+                                last_close = None
+                                previous_close = None
+                                last_trading_date = None
+                                ytd_start_price = None
+                                
+                                # Work backwards to find the most recent closing prices
+                                for i in range(len(close_prices) - 1, -1, -1):
+                                    if close_prices[i] is not None:
+                                        if last_close is None:
+                                            last_close = close_prices[i]
+                                            last_trading_date = datetime.fromtimestamp(timestamps[i]).strftime('%Y-%m-%d')
+                                        elif previous_close is None:
+                                            previous_close = close_prices[i]
+                                            break
+                                
+                                # Find YTD start price (first trading day of current year)
                                 current_year = datetime.now().year
                                 jan_1_timestamp = datetime(current_year, 1, 1).timestamp()
                                 
-                                # Find closest price to January 1st
-                                ytd_start_price = None
+                                # Look for first trading day in January
                                 for i, ts in enumerate(timestamps):
-                                    if ts >= jan_1_timestamp and prices[i] is not None:
-                                        ytd_start_price = prices[i]
+                                    if ts >= jan_1_timestamp and close_prices[i] is not None:
+                                        ytd_start_price = close_prices[i]
+                                        ytd_start_date = datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
                                         break
                                 
-                                if ytd_start_price and current_price:
-                                    ytd_change_pct = ((current_price - ytd_start_price) / ytd_start_price) * 100
-                            
-                            if current_price and prev_close:
-                                change = current_price - prev_close
-                                change_pct = (change / prev_close * 100)
-                                
-                                market_data[symbol] = {
-                                    'price': current_price,
-                                    'change': change,
-                                    'change_pct': change_pct,
-                                    'ytd_pct': ytd_change_pct
-                                }
-                                print(f"✅ {symbol}: ${current_price:.2f} ({change_pct:+.1f}% | YTD: {ytd_change_pct:+.1f}%)")
+                                if last_close and previous_close:
+                                    change = last_close - previous_close
+                                    change_pct = (change / previous_close * 100) if previous_close != 0 else 0
+                                    
+                                    # Calculate YTD performance
+                                    ytd_pct = 0
+                                    if ytd_start_price and last_close:
+                                        ytd_pct = ((last_close - ytd_start_price) / ytd_start_price * 100)
+                                        print(f"📊 {symbol} YTD: ${ytd_start_price:.2f} → ${last_close:.2f} = {ytd_pct:+.1f}%")
+                                    
+                                    market_data[symbol] = {
+                                        'price': float(last_close),
+                                        'change': float(change),
+                                        'change_pct': float(change_pct),
+                                        'ytd_pct': float(ytd_pct),
+                                        'trading_date': last_trading_date
+                                    }
+                                    print(f"✅ {symbol}: ${last_close:.2f} ({change_pct:+.1f}% daily, {ytd_pct:+.1f}% YTD) - Close {last_trading_date}")
+                                else:
+                                    print(f"⚠️ {symbol}: Could not find valid closing prices")
                             else:
-                                print(f"⚠️ {symbol}: Invalid price data")
+                                print(f"⚠️ {symbol}: No price history available")
                         else:
-                            print(f"⚠️ {symbol}: No chart data in response")
+                            print(f"⚠️ {symbol}: Invalid response structure")
                     else:
                         print(f"❌ {symbol}: HTTP {response.status_code}")
                     
-                    # Small delay between requests
-                    time.sleep(0.5)
+                    time.sleep(0.4)  # Slightly longer delay for larger data requests
                     
                 except Exception as e:
                     print(f"❌ Error fetching {symbol}: {e}")
                     continue
             
-            print(f"📊 Successfully fetched data for {len(market_data)} symbols")
+            print(f"📊 Successfully fetched closing data with YTD for {len(market_data)} symbols")
             return market_data
             
         except Exception as e:
             print(f"❌ Error in get_market_data: {e}")
-            # Return fallback data if everything fails
-            return self.get_fallback_market_data()
+            return {}
     
-    def get_fallback_market_data(self):
-        """Provide fallback market data if APIs fail"""
-        print("📊 Using fallback market data...")
-        fallback_data = {
-            'SPY': {'price': 525.00, 'change': 2.50, 'change_pct': 0.48, 'ytd_pct': 12.5},
-            'QQQ': {'price': 445.00, 'change': -1.20, 'change_pct': -0.27, 'ytd_pct': 18.2},
-            'VTI': {'price': 245.00, 'change': 1.10, 'change_pct': 0.45, 'ytd_pct': 11.8},
-            'EFA': {'price': 78.50, 'change': 0.30, 'change_pct': 0.38, 'ytd_pct': 8.1},
-            'EEM': {'price': 42.20, 'change': -0.15, 'change_pct': -0.35, 'ytd_pct': 5.2},
-            'VNQ': {'price': 95.80, 'change': 0.70, 'change_pct': 0.74, 'ytd_pct': -2.1},
-            'TNX': {'price': 4.25, 'change': -0.02, 'change_pct': -0.47, 'ytd_pct': 15.5},
-            'GLD': {'price': 201.50, 'change': 1.80, 'change_pct': 0.90, 'ytd_pct': 28.3},
-            'DXY': {'price': 103.20, 'change': 0.10, 'change_pct': 0.10, 'ytd_pct': 2.8},
-            'CL=F': {'price': 68.50, 'change': 0.85, 'change_pct': 1.26, 'ytd_pct': -8.2}
-        }
-        return fallback_data
+
     
     def fetch_financial_news(self, max_articles=30):
         """Fetch PE/VC focused financial news from premium sources"""
@@ -442,21 +443,36 @@ class FinancialNewsletterBot:
         return sorted(articles, key=pe_vc_score, reverse=True)
     
     def format_market_data(self, market_data):
-        """Format global market data as columns with YTD performance"""
-        if not market_data:
-            print("⚠️ No market data available, showing placeholder")
+        """Format market data or show unavailable message"""
+        if not market_data or len(market_data) == 0:
+            print("⚠️ No live market data available")
             return """
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h3 style="color: #333; margin: 0 0 15px 0;">🌍 Global Markets Overview</h3>
-                <p style="color: #666; font-style: italic;">Market data temporarily unavailable</p>
+                <div style="text-align: center; padding: 30px; background: white; border-radius: 8px; border: 2px dashed #ddd;">
+                    <p style="color: #666; font-size: 16px; margin: 0; font-style: italic;">
+                        📊 Market data temporarily unavailable
+                    </p>
+                    <p style="color: #999; font-size: 14px; margin: 10px 0 0 0;">
+                        Please check financial news sources for current market information
+                    </p>
+                </div>
             </div>
             """
         
-        print(f"📊 Formatting market data for {len(market_data)} symbols")
+        print(f"📊 Formatting live market data for {len(market_data)} symbols")
         
-        html = """
+        # Get the trading date from any symbol (they should all be the same)
+        trading_date = None
+        for symbol_data in market_data.values():
+            if 'trading_date' in symbol_data:
+                trading_date = symbol_data['trading_date']
+                break
+        
+        html = f"""
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #333; margin: 0 0 15px 0;">🌍 Global Markets Overview</h3>
+            <h3 style="color: #333; margin: 0 0 5px 0;">🌍 Global Markets Overview</h3>
+            {f'<p style="color: #666; font-size: 12px; margin: 0 0 15px 0;">Closing prices from {trading_date}</p>' if trading_date else ''}
             <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
         """
         
@@ -510,9 +526,18 @@ class FinancialNewsletterBot:
                         <div style="color: {ytd_color}; font-size: 10px; font-weight: 500;">YTD: {ytd_pct:+.1f}%</div>
                     </div>
                 """
+            else:
+                # Show placeholder for missing symbols
+                display_name = market_labels.get(symbol, symbol)
+                html += f"""
+                    <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); opacity: 0.5;">
+                        <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
+                        <div style="font-size: 14px; color: #999;">N/A</div>
+                    </div>
+                """
         
         html += "</div></div>"
-        print("✅ Market data grid formatted as columns with YTD")
+        print("✅ Market data formatted successfully")
         return html
     
     def create_newsletter_html(self, categorized_articles, market_data):
@@ -641,7 +666,7 @@ class FinancialNewsletterBot:
             <div class="greeting">
                 <strong>Good Morning,</strong><br><br>
                 Today's brief covers {total_articles} key stories across global markets and private capital deals. 
-                Organized by market overview, then deal flow across PE, VC, IPOs, fundraising, distressed situations, and secondaries.
+                Market data reflects closing prices from the most recent trading session.
             </div>
             
             {self.format_market_data(market_data)}
