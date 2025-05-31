@@ -1,4 +1,6 @@
-import feedparser
+def categorize_article(self, text):
+        """Categorize articles with enhanced structure"""
+        text_lower = text.lowerimport feedparser
 import requests
 import smtplib
 import schedule
