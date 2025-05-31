@@ -1,6 +1,45 @@
 def categorize_article(self, text):
         """Categorize articles with enhanced structure"""
-        text_lower = text.lowerimport feedparser
+        text_lower = text.lower()
+        
+        # Global Markets (broad financial markets, not PE/VC specific)
+        if any(word in text_lower for word in ['stock market', 'trading', 'index', 'bond market', 'commodity', 'currency', 'forex', 'fed', 'federal reserve', 'central bank', 'interest rate', 'inflation', 'gdp', 'economic data', 'treasury', 'yields']):
+            return 'Global Markets'
+        
+        # Private Equity deals and buyouts
+        elif any(word in text_lower for word in ['buyout', 'lbo', 'leveraged buyout', 'take private', 'private equity', 'pe firm', 'portfolio company acquisition']):
+            return 'Private Equity'
+        
+        # Venture Capital funding rounds
+        elif any(word in text_lower for word in ['venture capital', 'vc', 'startup funding', 'series a', 'series b', 'series c', 'seed funding', 'pre-seed', 'growth round']):
+            return 'Venture Capital'
+        
+        # Private Credit and direct lending
+        elif any(word in text_lower for word in ['private credit', 'direct lending', 'credit fund', 'debt fund', 'mezzanine', 'bdc', 'business development company', 'private debt', 'credit strategy']):
+            return 'Private Credit'
+        
+        # IPOs and public offerings
+        elif any(word in text_lower for word in ['ipo', 'public offering', 'listing', 'debut', 'going public', 'spac']):
+            return 'IPOs'
+        
+        # Fund raising (PE/VC/Credit fund raises, NOT company fundraising)
+        elif any(word in text_lower for word in ['fund raising', 'fund close', 'limited partners', 'lp', 'fund launch', 'first close', 'final close', 'fund of funds', 'pension fund', 'endowment', 'sovereign wealth']) and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round']):
+            return 'Fundraising'
+        
+        # Bankruptcy and distressed situations
+        elif any(word in text_lower for word in ['bankruptcy', 'chapter 11', 'distressed', 'restructuring', 'liquidation', 'insolvency', 'creditor', 'debtor']):
+            return 'Bankruptcy'
+        
+        # PE Secondaries market
+        elif any(word in text_lower for word in ['secondary', 'secondaries', 'continuation fund', 'gp-led', 'lp-led', 'process sale', 'portfolio sale']):
+            return 'PE Secondaries'
+        
+        # General deal activity defaults to PE
+        elif any(word in text_lower for word in ['m&a', 'merger', 'acquisition', 'takeover', 'deal']):
+            return 'Private Equity'
+        
+        else:
+            return 'Global Markets'  # Default to markets sectionimport feedparser
 import requests
 import smtplib
 import schedule
@@ -550,14 +589,17 @@ class FinancialNewsletterBot:
         """
         
         # Add categorized content in new structure
-        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'IPOs', 'Fundraising', 'Bankruptcy', 'PE Secondaries']
+        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'Private Credit', 'IPOs', 'Fundraising', 'Bankruptcy', 'PE Secondaries']
         
         for category in category_order:
             if category in categorized_articles and categorized_articles[category]:
                 # Special handling for Global Markets section
                 if category == 'Global Markets':
                     article_limit = 8  # More articles for markets overview
-                    section_description = "Market movements, economic indicators, and macro trends affecting PE/VC markets"
+                    section_description = "Global financial markets news, economic indicators, and macro trends"
+                elif category == 'Fundraising':
+                    article_limit = 6
+                    section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
                 else:
                     article_limit = 6  # Standard limit for deal sections
                     section_description = ""
@@ -567,7 +609,7 @@ class FinancialNewsletterBot:
                     <h2>{self.get_category_emoji(category)} {category}</h2>
                 """
                 
-                # Add section description for Global Markets
+                # Add section description for specific sections
                 if section_description:
                     html_content += f"""
                     <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
@@ -608,6 +650,7 @@ class FinancialNewsletterBot:
             'Global Markets': '🌍',
             'Private Equity': '🏢',
             'Venture Capital': '🚀',
+            'Private Credit': '💳',
             'IPOs': '📈',
             'Fundraising': '💰',
             'Bankruptcy': '⚠️',
