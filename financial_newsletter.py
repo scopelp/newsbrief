@@ -717,6 +717,34 @@ class FinancialNewsletterBot:
                 .read-more:hover {{
                     text-decoration: underline;
                 }}
+                .bullet-list {{
+                    list-style-type: none;
+                    padding: 0;
+                    margin: 0;
+                }}
+                .bullet-list li {{
+                    margin-bottom: 15px;
+                    padding-left: 20px;
+                    position: relative;
+                    font-size: 15px;
+                    line-height: 1.5;
+                }}
+                .bullet-list li:before {{
+                    content: "•";
+                    position: absolute;
+                    left: 0;
+                    font-weight: bold;
+                    font-size: 18px;
+                }}
+                .bullet-list a {{
+                    color: #1d9bf0;
+                    text-decoration: none;
+                    font-size: 13px;
+                    font-weight: 500;
+                }}
+                .bullet-list a:hover {{
+                    text-decoration: underline;
+                }}
                 .footer {{
                     text-align: center;
                     padding: 30px 20px;
@@ -768,41 +796,69 @@ class FinancialNewsletterBot:
         
         for category in category_order:
             if category in categorized_articles and categorized_articles[category]:
-                # Special handling for Global Markets section
+                # Special handling for Global Markets section (keep original format)
                 if category == 'Global Markets':
                     article_limit = 8  # More articles for markets overview
                     section_description = "Global financial markets news, economic indicators, and macro trends"
-                elif category == 'Fundraising':
-                    article_limit = 6
-                    section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
-                else:
-                    article_limit = 6  # Standard limit for deal sections
-                    section_description = ""
-                
-                html_content += f"""
-                <div class="section">
-                    <h2>{self.get_category_emoji(category)} {category}</h2>
-                """
-                
-                # Add section description for specific sections
-                if section_description:
+                    
                     html_content += f"""
-                    <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
+                    <div class="section">
+                        <h2>{self.get_category_emoji(category)} {category}</h2>
+                        <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
                     """
-                
-                for article in categorized_articles[category][:article_limit]:
-                    html_content += f"""
-                    <div class="article">
-                        <div class="article-title">{article['title']}</div>
-                        <div class="article-summary">{article['summary']}</div>
-                        <div class="article-meta">
-                            <span>📍 {article['source']}</span>
-                            <a href="{article['link']}" class="read-more" target="_blank">Read more →</a>
+                    
+                    # Global Markets keeps the original detailed format
+                    for article in categorized_articles[category][:article_limit]:
+                        html_content += f"""
+                        <div class="article">
+                            <div class="article-title">{article['title']}</div>
+                            <div class="article-summary">{article['summary']}</div>
+                            <div class="article-meta">
+                                <span>📍 {article['source']}</span>
+                                <a href="{article['link']}" class="read-more" target="_blank">Read more →</a>
+                            </div>
                         </div>
-                    </div>
+                        """
+                    
+                    html_content += "</div>"
+                    
+                else:
+                    # All other sections use bullet point format
+                    if category == 'Fundraising':
+                        article_limit = 8
+                        section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
+                    else:
+                        article_limit = 8  # Standard limit for deal sections
+                        section_description = ""
+                    
+                    html_content += f"""
+                    <div class="section">
+                        <h2>{self.get_category_emoji(category)} {category}</h2>
                     """
-                
-                html_content += "</div>"
+                    
+                    # Add section description if available
+                    if section_description:
+                        html_content += f"""
+                        <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
+                        """
+                    
+                    # Bullet point format for PE and subsequent sections
+                    html_content += '<ul class="bullet-list">'
+                    
+                    for article in categorized_articles[category][:article_limit]:
+                        # Extract key information from title/summary for concise bullet
+                        bullet_text = article['title']
+                        if len(bullet_text) > 120:
+                            bullet_text = bullet_text[:117] + "..."
+                        
+                        html_content += f"""
+                        <li>
+                            {bullet_text} 
+                            <a href="{article['link']}" target="_blank">[link]</a>
+                        </li>
+                        """
+                    
+                    html_content += '</ul></div>'
                 
                 # Add divider between categories (except last one)
                 if category != category_order[-1] and category_order.index(category) < len(category_order) - 1:
