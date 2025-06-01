@@ -514,116 +514,8 @@ class FinancialNewsletterBot:
             score += sum(3 for indicator in deal_indicators if indicator in text)
             
             # Currency indicators for NA/EU (bonus points)
-            if any(currency in text for currency in ['
-    
-    def format_market_data(self, market_data):
-        """Format market data or show unavailable message"""
-        if not market_data or len(market_data) == 0:
-            print("⚠️ No live market data available")
-            return """
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="color: #333; margin: 0 0 15px 0;">🌍 Global Markets Overview</h3>
-                <div style="text-align: center; padding: 30px; background: white; border-radius: 8px; border: 2px dashed #ddd;">
-                    <p style="color: #666; font-size: 16px; margin: 0; font-style: italic;">
-                        📊 Market data temporarily unavailable
-                    </p>
-                    <p style="color: #999; font-size: 14px; margin: 10px 0 0 0;">
-                        Please check financial news sources for current market information
-                    </p>
-                </div>
-            </div>
-            """
-        
-        print(f"📊 Formatting live market data for {len(market_data)} symbols")
-        
-        # Get the trading date from any symbol (they should all be the same)
-        trading_date = None
-        for symbol_data in market_data.values():
-            if 'trading_date' in symbol_data:
-                trading_date = symbol_data['trading_date']
-                break
-        
-        html = f"""
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #333; margin: 0 0 5px 0;">🌍 Global Markets Overview</h3>
-            {f'<p style="color: #666; font-size: 12px; margin: 0 0 15px 0;">Closing prices from {trading_date}</p>' if trading_date else ''}
-            <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between;">
-        """
-        
-        # Enhanced market labels for global view
-        market_labels = {
-            'SPY': 'S&P 500',
-            'QQQ': 'Nasdaq',
-            'VTI': 'US Total Market',
-            'EFA': 'Developed Markets',
-            'EEM': 'Emerging Markets',
-            'TNX': '10-Year Treasury',
-            'GLD': 'Gold',
-            'DXY': 'US Dollar Index',
-            'CL=F': 'Oil (WTI)'
-        }
-        
-        # Define order for consistent display
-        symbol_order = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
-        
-        for symbol in symbol_order:
-            if symbol in market_data:
-                data = market_data[symbol]
-                price = data.get('price', 0)
-                change = data.get('change', 0)
-                change_pct = data.get('change_pct', 0)
-                ytd_pct = data.get('ytd_pct', 0)
-                
-                # Color coding for daily change
-                daily_color = "#28a745" if change >= 0 else "#dc3545"
-                daily_arrow = "↗" if change >= 0 else "↘"
-                
-                # Color coding for YTD performance
-                ytd_color = "#28a745" if ytd_pct >= 0 else "#dc3545"
-                
-                display_name = market_labels.get(symbol, symbol)
-                
-                # Format price based on symbol type
-                if symbol == 'TNX':
-                    price_display = f"{price:.2f}%"
-                elif symbol in ['DXY']:
-                    price_display = f"{price:.2f}"
-                else:
-                    price_display = f"${price:.2f}"
-                
-                # Show YTD only for equity indices and commodities (not TNX and DXY)
-                if symbol in ['TNX', 'DXY']:
-                    # Treasury and Dollar - closing price only
-                    html += f"""
-                        <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
-                            <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
-                            <div style="color: {daily_color}; font-size: 12px; font-weight: 500;">{daily_arrow} {change_pct:+.1f}%</div>
-                        </div>
-                    """
-                else:
-                    # Equity indices and commodities - show YTD
-                    html += f"""
-                        <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
-                            <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; color: #1a1a1a;">{price_display}</div>
-                            <div style="color: {daily_color}; font-size: 12px; font-weight: 500; margin-bottom: 4px;">{daily_arrow} {change_pct:+.1f}%</div>
-                            <div style="color: {ytd_color}; font-size: 10px; font-weight: 500;">YTD: {ytd_pct:+.1f}%</div>
-                        </div>
-                    """
-            else:
-                # Show placeholder for missing symbols
-                display_name = market_labels.get(symbol, symbol)
-                html += f"""
-                    <div style="flex: 1; min-width: 120px; max-width: 150px; text-align: center; padding: 12px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); opacity: 0.5;">
-                        <div style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 6px; line-height: 1.2;">{display_name}</div>
-                        <div style="font-size: 14px; color: #999;">N/A</div>
-                    </div>
-                """
-        
-        html += "</div></div>"
-        print("✅ Market data formatted successfully")
-        return html, 'usd', 'dollar', '€', 'eur', 'euro', '£', 'gbp', 'pound']):
+            currency_list = ['$', 'usd', 'dollar', 'eur', 'euro', 'gbp', 'pound']
+            if any(currency in text for currency in currency_list):
                 score += 5
             
             return score
@@ -738,3 +630,329 @@ class FinancialNewsletterBot:
         html += "</div></div>"
         print("✅ Market data formatted successfully")
         return html
+    
+    def create_newsletter_html(self, categorized_articles, market_data):
+        """Create ExecSum-style HTML newsletter"""
+        current_date = datetime.now().strftime("%B %d, %Y")
+        
+        # Count total articles
+        total_articles = sum(len(articles) for articles in categorized_articles.values())
+        
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                body {{ 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    max-width: 680px; 
+                    margin: 0 auto; 
+                    background: #ffffff;
+                    color: #333;
+                    line-height: 1.6;
+                }}
+                .header {{
+                    text-align: center;
+                    padding: 30px 20px;
+                    border-bottom: 1px solid #e1e8ed;
+                }}
+                .header h1 {{
+                    font-size: 28px;
+                    color: #1a1a1a;
+                    margin: 0 0 10px 0;
+                    font-weight: 700;
+                }}
+                .date {{
+                    color: #657786;
+                    font-size: 14px;
+                }}
+                .greeting {{
+                    padding: 20px;
+                    background: #f8f9fa;
+                    margin: 0;
+                    font-size: 16px;
+                }}
+                .section {{
+                    margin: 30px 20px;
+                }}
+                .section h2 {{
+                    color: #1a1a1a;
+                    font-size: 20px;
+                    margin: 0 0 20px 0;
+                    font-weight: 600;
+                    border-bottom: 2px solid #1d9bf0;
+                    padding-bottom: 8px;
+                }}
+                .article {{
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 1px solid #f1f3f4;
+                }}
+                .article:last-child {{
+                    border-bottom: none;
+                }}
+                .article-title {{
+                    font-weight: 600;
+                    font-size: 16px;
+                    margin: 0 0 8px 0;
+                    color: #1a1a1a;
+                }}
+                .article-summary {{
+                    color: #536471;
+                    margin: 8px 0 12px 0;
+                    font-size: 14px;
+                }}
+                .article-meta {{
+                    font-size: 12px;
+                    color: #8b98a5;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .read-more {{
+                    color: #1d9bf0;
+                    text-decoration: none;
+                    font-weight: 500;
+                    font-size: 13px;
+                }}
+                .read-more:hover {{
+                    text-decoration: underline;
+                }}
+                .footer {{
+                    text-align: center;
+                    padding: 30px 20px;
+                    border-top: 1px solid #e1e8ed;
+                    color: #8b98a5;
+                    font-size: 12px;
+                }}
+                .category-divider {{
+                    margin: 40px 0 30px 0;
+                    text-align: center;
+                }}
+                .category-divider::before {{
+                    content: '';
+                    display: inline-block;
+                    width: 50px;
+                    height: 1px;
+                    background: #e1e8ed;
+                    margin-right: 15px;
+                    vertical-align: middle;
+                }}
+                .category-divider::after {{
+                    content: '';
+                    display: inline-block;
+                    width: 50px;
+                    height: 1px;
+                    background: #e1e8ed;
+                    margin-left: 15px;
+                    vertical-align: middle;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>📊 NewsBrief by ScopeLP</h1>
+                <div class="date">{current_date}</div>
+            </div>
+            
+            <div class="greeting">
+                <strong>Good Morning,</strong><br><br>
+                Today's brief covers {total_articles} key stories across global markets and private capital deals. 
+                Market data reflects closing prices from the most recent trading session.
+            </div>
+            
+            {self.format_market_data(market_data)}
+        """
+        
+        # Add categorized content in new structure
+        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'Private Credit', 'IPOs', 'Fundraising', 'Bankruptcy', 'PE Secondaries']
+        
+        for category in category_order:
+            if category in categorized_articles and categorized_articles[category]:
+                # Special handling for Global Markets section
+                if category == 'Global Markets':
+                    article_limit = 8  # More articles for markets overview
+                    section_description = "Global financial markets news, economic indicators, and macro trends"
+                elif category == 'Fundraising':
+                    article_limit = 6
+                    section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
+                else:
+                    article_limit = 6  # Standard limit for deal sections
+                    section_description = ""
+                
+                html_content += f"""
+                <div class="section">
+                    <h2>{self.get_category_emoji(category)} {category}</h2>
+                """
+                
+                # Add section description for specific sections
+                if section_description:
+                    html_content += f"""
+                    <p style="color: #666; font-size: 14px; margin: 0 0 20px 0; font-style: italic;">{section_description}</p>
+                    """
+                
+                for article in categorized_articles[category][:article_limit]:
+                    html_content += f"""
+                    <div class="article">
+                        <div class="article-title">{article['title']}</div>
+                        <div class="article-summary">{article['summary']}</div>
+                        <div class="article-meta">
+                            <span>📍 {article['source']}</span>
+                            <a href="{article['link']}" class="read-more" target="_blank">Read more →</a>
+                        </div>
+                    </div>
+                    """
+                
+                html_content += "</div>"
+                
+                # Add divider between categories (except last one)
+                if category != category_order[-1] and category_order.index(category) < len(category_order) - 1:
+                    html_content += '<div class="category-divider"></div>'
+        
+        html_content += """
+            <div class="footer">
+                <p>📊 NewsBrief by ScopeLP - Private Equity Intelligence<br>
+                Automated monitoring and analysis for PE professionals.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html_content
+    
+    def get_category_emoji(self, category):
+        """Get emoji for deal-focused categories"""
+        emojis = {
+            'Global Markets': '🌍',
+            'Private Equity': '🏢',
+            'Venture Capital': '🚀',
+            'Private Credit': '💳',
+            'IPOs': '📈',
+            'Fundraising': '💰',
+            'Bankruptcy': '⚠️',
+            'PE Secondaries': '🔄'
+        }
+        return emojis.get(category, '📰')
+    
+    def send_email(self, html_content):
+        """Send the newsletter email via PrivateEmail.com"""
+        try:
+            # Debug: Check if credentials are loaded
+            print(f"📧 Email Configuration:")
+            print(f"   From: {self.sender_email}")
+            print(f"   To: {self.recipient_email}")
+            print(f"   Password: {'*' * len(self.sender_password) if self.sender_password else 'NOT SET'}")
+            
+            if not self.sender_email or not self.sender_password or not self.recipient_email:
+                print("❌ ERROR: Email credentials not properly set!")
+                print(f"   SENDER_EMAIL set: {bool(self.sender_email)}")
+                print(f"   EMAIL_PASSWORD set: {bool(self.sender_password)}")
+                print(f"   RECIPIENT_EMAIL set: {bool(self.recipient_email)}")
+                return
+            
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f"📊 NewsBrief by ScopeLP - {datetime.now().strftime('%B %d, %Y')}"
+            msg['From'] = self.sender_email
+            msg['To'] = self.recipient_email
+            
+            # Create HTML part
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(html_part)
+            
+            # Try multiple PrivateEmail.com SMTP configurations
+            smtp_configs = [
+                ('mail.privateemail.com', 587, True),    # STARTTLS (most common)
+                ('mail.privateemail.com', 465, False),   # SSL
+                ('smtp.privateemail.com', 587, True),    # Alternative server
+                ('smtp.privateemail.com', 465, False),   # Alternative server SSL
+            ]
+            
+            for server, port, use_starttls in smtp_configs:
+                try:
+                    print(f"\n🔄 Attempting to connect to {server}:{port} (STARTTLS: {use_starttls})")
+                    
+                    if use_starttls:
+                        # STARTTLS configuration
+                        smtp_server = smtplib.SMTP(server, port, timeout=30)
+                        smtp_server.set_debuglevel(1)  # Enable debug output
+                        print("   Sending STARTTLS command...")
+                        smtp_server.starttls()
+                        print("   Logging in...")
+                        smtp_server.login(self.sender_email, self.sender_password)
+                        print("   Sending message...")
+                        smtp_server.send_message(msg)
+                        smtp_server.quit()
+                    else:
+                        # SSL configuration
+                        smtp_server = smtplib.SMTP_SSL(server, port, timeout=30)
+                        smtp_server.set_debuglevel(1)  # Enable debug output
+                        print("   Logging in...")
+                        smtp_server.login(self.sender_email, self.sender_password)
+                        print("   Sending message...")
+                        smtp_server.send_message(msg)
+                        smtp_server.quit()
+                    
+                    print(f"✅ NewsBrief sent successfully via {server}:{port} at {datetime.now()}")
+                    return
+                    
+                except smtplib.SMTPAuthenticationError as e:
+                    print(f"❌ Authentication failed with {server}:{port}")
+                    print(f"   Error: {e}")
+                    print("   Check your email and password in GitHub Secrets")
+                except smtplib.SMTPException as e:
+                    print(f"❌ SMTP error with {server}:{port}")
+                    print(f"   Error: {e}")
+                except Exception as e:
+                    print(f"❌ Failed with {server}:{port}")
+                    print(f"   Error type: {type(e).__name__}")
+                    print(f"   Error: {e}")
+                    continue
+            
+            print("\n❌ All PrivateEmail.com SMTP configurations failed")
+            print("📝 Troubleshooting tips:")
+            print("   1. Check if you're using an app-specific password")
+            print("   2. Verify your email domain is correct")
+            print("   3. Check if 2FA is enabled on your account")
+            print("   4. Ensure the email addresses are correct in GitHub Secrets")
+            
+        except Exception as e:
+            print(f"❌ Error preparing email: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def generate_and_send_newsletter(self):
+        """Main function to create and send newsletter"""
+        print("📊 Generating NewsBrief by ScopeLP...")
+        
+        # Fetch market data
+        market_data = self.get_market_data()
+        
+        # Fetch financial news
+        categorized_articles = self.fetch_financial_news()
+        
+        if categorized_articles:
+            html_content = self.create_newsletter_html(categorized_articles, market_data)
+            self.send_email(html_content)
+        else:
+            print("⚠️ No articles found. Newsletter not sent.")
+
+def main():
+    newsletter_bot = FinancialNewsletterBot()
+    
+    # For GitHub Actions - run once
+    if os.getenv('GITHUB_ACTIONS'):
+        newsletter_bot.generate_and_send_newsletter()
+    else:
+        # For local development - schedule daily
+        schedule.every().day.at("07:00").do(newsletter_bot.generate_and_send_newsletter)
+        
+        print("🚀 NewsBrief by ScopeLP started. Next newsletter: 7:00 AM daily")
+        
+        # Uncomment to test immediately:
+        # newsletter_bot.generate_and_send_newsletter()
+        
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+
+if __name__ == "__main__":
+    main()
