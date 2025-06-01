@@ -515,6 +515,7 @@ class FinancialNewsletterBot:
             
             # Currency indicators for NA/EU (bonus points)
             if any(currency in text for currency in ['$', 'usd', 'dollar', '€', 'eur', 'euro', '£', 'gbp', 'pound']):
+                score += 5
     
     def format_market_data(self, market_data):
         """Format market data or show unavailable message"""
