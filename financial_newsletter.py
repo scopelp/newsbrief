@@ -778,7 +778,7 @@ class FinancialNewsletterBot:
         </head>
         <body>
             <div class="header">
-                <h1>📊 NewsBrief by ScopeLP</h1>
+                <h1>📡 ScopeSignal by ScopeLP</h1>
                 <div class="date">{current_date}</div>
             </div>
             
@@ -906,7 +906,15 @@ class FinancialNewsletterBot:
                 return
             
             msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"📊 NewsBrief by ScopeLP - {datetime.now().strftime('%B %d, %Y')}"
+            # Use first available article title for punchy subject
+            top_article = None
+            for cat in ['Private Equity', 'Venture Capital', 'Global Markets']:
+                if cat in categorized_articles and categorized_articles[cat]:
+                    top_article = categorized_articles[cat][0]
+                    break
+
+            subject_line = f"{top_article['title']} | ScopeSignal" if top_article else f"ScopeSignal | {datetime.now().strftime('%b %d')}"
+            msg['Subject'] = subject_line
             msg['From'] = self.sender_email
             msg['To'] = self.recipient_email
             
