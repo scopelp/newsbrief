@@ -854,7 +854,7 @@ class FinancialNewsletterBot:
                         html_content += f"""
                         <li>
                             {bullet_text} 
-                            <a href="{article['link']}" target="_blank">[link]</a>
+                            <a href="{article['link']}" target="_blank">[{article['source']}]</a>
                         </li>
                         """
                     
