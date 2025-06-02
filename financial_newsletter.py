@@ -889,100 +889,77 @@ class FinancialNewsletterBot:
         }
         return emojis.get(category, '📰')
     
-    def send_email(self, html_content):
-        """Send the newsletter email via PrivateEmail.com"""
+    def send_email(self, html_content, categorized_articles):
+        """Send the newsletter email via PrivateEmail.com with punchy subject"""
         try:
-            # Debug: Check if credentials are loaded
+            # Debug info
             print(f"📧 Email Configuration:")
             print(f"   From: {self.sender_email}")
             print(f"   To: {self.recipient_email}")
             print(f"   Password: {'*' * len(self.sender_password) if self.sender_password else 'NOT SET'}")
-            
+    
             if not self.sender_email or not self.sender_password or not self.recipient_email:
                 print("❌ ERROR: Email credentials not properly set!")
-                print(f"   SENDER_EMAIL set: {bool(self.sender_email)}")
-                print(f"   EMAIL_PASSWORD set: {bool(self.sender_password)}")
-                print(f"   RECIPIENT_EMAIL set: {bool(self.recipient_email)}")
                 return
-            
-            msg = MIMEMultipart('alternative')
-            # Use first available article title for punchy subject
+    
+            # 🔥 Generate punchy subject line from top article
             top_article = None
             for cat in ['Private Equity', 'Venture Capital', 'Global Markets']:
                 if cat in categorized_articles and categorized_articles[cat]:
                     top_article = categorized_articles[cat][0]
                     break
-
-            subject_line = f"{top_article['title']} | ScopeSignal" if top_article else f"ScopeSignal | {datetime.now().strftime('%b %d')}"
+    
+            if top_article:
+                subject_line = f"{top_article['title']} | ScopeSignal"
+            else:
+                subject_line = f"ScopeSignal | {datetime.now().strftime('%B %d, %Y')}"
+    
+            print(f"📨 Email Subject: {subject_line}")
+    
+            # Create email message
+            msg = MIMEMultipart('alternative')
             msg['Subject'] = subject_line
             msg['From'] = self.sender_email
             msg['To'] = self.recipient_email
-            
-            # Create HTML part
+    
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
-            
-            # Try multiple PrivateEmail.com SMTP configurations
+    
+            # Try multiple SMTP configs
             smtp_configs = [
-                ('mail.privateemail.com', 587, True),    # STARTTLS (most common)
-                ('mail.privateemail.com', 465, False),   # SSL
-                ('smtp.privateemail.com', 587, True),    # Alternative server
-                ('smtp.privateemail.com', 465, False),   # Alternative server SSL
+                ('mail.privateemail.com', 587, True),
+                ('mail.privateemail.com', 465, False),
+                ('smtp.privateemail.com', 587, True),
+                ('smtp.privateemail.com', 465, False),
             ]
-            
+    
             for server, port, use_starttls in smtp_configs:
                 try:
-                    print(f"\n🔄 Attempting to connect to {server}:{port} (STARTTLS: {use_starttls})")
-                    
+                    print(f"🔄 Trying SMTP: {server}:{port} (STARTTLS: {use_starttls})")
                     if use_starttls:
-                        # STARTTLS configuration
                         smtp_server = smtplib.SMTP(server, port, timeout=30)
-                        smtp_server.set_debuglevel(1)  # Enable debug output
-                        print("   Sending STARTTLS command...")
                         smtp_server.starttls()
-                        print("   Logging in...")
                         smtp_server.login(self.sender_email, self.sender_password)
-                        print("   Sending message...")
                         smtp_server.send_message(msg)
                         smtp_server.quit()
                     else:
-                        # SSL configuration
                         smtp_server = smtplib.SMTP_SSL(server, port, timeout=30)
-                        smtp_server.set_debuglevel(1)  # Enable debug output
-                        print("   Logging in...")
                         smtp_server.login(self.sender_email, self.sender_password)
-                        print("   Sending message...")
                         smtp_server.send_message(msg)
                         smtp_server.quit()
-                    
-                    print(f"✅ NewsBrief sent successfully via {server}:{port} at {datetime.now()}")
+    
+                    print(f"✅ Email sent successfully via {server}:{port}")
                     return
-                    
-                except smtplib.SMTPAuthenticationError as e:
-                    print(f"❌ Authentication failed with {server}:{port}")
-                    print(f"   Error: {e}")
-                    print("   Check your email and password in GitHub Secrets")
+    
                 except smtplib.SMTPException as e:
-                    print(f"❌ SMTP error with {server}:{port}")
-                    print(f"   Error: {e}")
-                except Exception as e:
-                    print(f"❌ Failed with {server}:{port}")
-                    print(f"   Error type: {type(e).__name__}")
-                    print(f"   Error: {e}")
+                    print(f"❌ SMTP error on {server}:{port}: {e}")
                     continue
-            
-            print("\n❌ All PrivateEmail.com SMTP configurations failed")
-            print("📝 Troubleshooting tips:")
-            print("   1. Check if you're using an app-specific password")
-            print("   2. Verify your email domain is correct")
-            print("   3. Check if 2FA is enabled on your account")
-            print("   4. Ensure the email addresses are correct in GitHub Secrets")
-            
+    
         except Exception as e:
             print(f"❌ Error preparing email: {e}")
             import traceback
             traceback.print_exc()
-    
+
     def generate_and_send_newsletter(self):
         """Main function to create and send newsletter"""
         print("📊 Generating NewsBrief by ScopeLP...")
