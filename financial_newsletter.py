@@ -972,7 +972,7 @@ class FinancialNewsletterBot:
         
         if categorized_articles:
             html_content = self.create_newsletter_html(categorized_articles, market_data)
-            self.send_email(html_content)
+            self.send_email(html_content, categorized_articles)
         else:
             print("⚠️ No articles found. Newsletter not sent.")
 
