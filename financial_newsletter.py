@@ -267,10 +267,10 @@ class FinancialNewsletterBot:
             'Bloomberg Business': 9,
             'Reuters Business': 8,
             'Reuters Markets': 8,
-            'PE Hub': 8,
-            'PitchBook News': 8,
+            'PE Hub': 9,
+            'PitchBook News': 9,
             'CNBC': 7,
-            'TechCrunch Startups': 6
+            'TechCrunch Startups': 7
         }
         return priority_map.get(source_name, 5)
     
