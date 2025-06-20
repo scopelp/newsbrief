@@ -398,9 +398,11 @@ class FinancialNewsletterBot:
     def categorize_article(self, text):
         """Categorize articles with enhanced structure"""
         text_lower = text.lower()
-        
+        print(f"🔍 DEBUG - Categorizing: {text[:100]}...")
+
         # Global Markets (broad financial markets, not PE/VC specific)
-        if any(word in text_lower for word in ['stock market', 'trading', 'index', 'bond market', 'commodity', 'currency', 'forex', 'fed', 'federal reserve', 'central bank', 'interest rate', 'inflation', 'gdp', 'economic data', 'treasury', 'yields', 'earnings', 'revenue', 'profit', 'quarterly results', 'financial results', 'analyst', 'forecast', 'market update', 'investor relations', 'shareholder']):
+        if any(word in text_lower for word in ['stock market', 'trading', 'index', 'bond market', 'commodity', 'currency', 'forex', 'fed', 'federal reserve', 'central bank', 'interest rate', 'inflation', 'gdp', 'economic data', 'treasury', 'yields']):
+            print(f"   → Categorized as: Global Markets")
             return 'Global Markets'
             
         # Private Equity deals and buyouts
@@ -420,9 +422,12 @@ class FinancialNewsletterBot:
             return 'IPOs'
         
         # Fund raising (PE/VC/Credit fund raises, NOT company fundraising)
-        elif any(word in text_lower for word in ['fund raising', 'fund close', 'fund launch', 'first close', 'final close', 'fund of funds', 'closes fund', 'raised fund', 'fundraising target', 'capital commitment', 'fund size']) and any(word in text_lower for word in ['private equity', 'venture capital', 'credit fund', 'debt fund', 'investment fund', 'pe firm', 'vc firm', 'limited partners', 'lp', 'gp', 'general partner']) and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round']):
+        elif (any(word in text_lower for word in ['fund close', 'fund launch', 'first close', 'final close', 'closes fund', 'raised fund', 'fundraising target', 'capital commitment']) 
+              and any(word in text_lower for word in ['private equity', 'venture capital', 'credit fund', 'debt fund', 'pe firm', 'vc firm', 'buyout fund', 'growth fund']) 
+              and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round', 'mutual fund', 'etf', 'hedge fund', 'sovereign wealth', 'pension fund'])):
+            print(f"   → Categorized as: Fundraising")
             return 'Fundraising'
-        
+                
         # Bankruptcy and distressed situations
         elif any(word in text_lower for word in ['bankruptcy', 'chapter 11', 'distressed', 'restructuring', 'liquidation', 'insolvency', 'creditor', 'debtor']):
             return 'Bankruptcy'
@@ -434,7 +439,11 @@ class FinancialNewsletterBot:
         # General deal activity defaults to PE
         elif any(word in text_lower for word in ['m&a', 'merger', 'acquisition', 'takeover', 'deal']):
             return 'Private Equity'
-        
+            
+        elif any(word in text_lower for word in ['mutual fund', 'etf', 'index fund', 'hedge fund', 'pension fund', 'sovereign wealth', 'lending rates', 'interest rates', 'trade deal', 'tariffs', 'china', 'fidelity', 'blackrock']) and not any(word in text_lower for word in ['private equity', 'venture capital', 'buyout', 'pe firm', 'vc firm']):
+            print(f"   → Categorized as: Global Markets (generic fund news)")
+            return 'Global Markets'
+
         else:
             return 'Global Markets'  # Default to markets section
     
