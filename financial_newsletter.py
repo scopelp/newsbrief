@@ -353,7 +353,8 @@ class FinancialNewsletterBot:
         # Specialized PE/VC sources are always relevant
         specialized_sources = [
             'PE News', 'Private Equity Wire', 'Private Equity International', 
-            'Buyouts Insider', 'Private Capital Journal', 'PE Hub'
+            'Buyouts Insider', 'Private Capital Journal', 'PE Hub',"Financial Times", 'Wall Street Journal',
+            'Bloomberg Markets','Reuters Business','PitchBook News', 'TechCrunch Startups', 'CNBC'    
         ]        
         if source_name in specialized_sources:
             return True
