@@ -898,7 +898,7 @@ class FinancialNewsletterBot:
                         """
                     
                     html_content += "</div>"
-                    
+                
                 else:
                     # All other sections use bullet point format
                     article_limit = 12  # Standard limit for deal sections
