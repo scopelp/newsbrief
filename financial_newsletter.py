@@ -419,7 +419,7 @@ class FinancialNewsletterBot:
             return 'IPOs'
         
         # Fund raising (PE/VC/Credit fund raises, NOT company fundraising)
-        elif any(word in text_lower for word in ['fund raising', 'fund close', 'limited partners', 'lp', 'fund launch', 'first close', 'final close', 'fund of funds', 'pension fund', 'endowment', 'sovereign wealth']) and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round']):
+        elif any(word in text_lower for word in ['fund raising', 'fund close', 'fund launch', 'first close', 'final close', 'fund of funds', 'closes fund', 'raised fund', 'fundraising target', 'capital commitment', 'fund size']) and any(word in text_lower for word in ['private equity', 'venture capital', 'credit fund', 'debt fund', 'investment fund', 'pe firm', 'vc firm', 'limited partners', 'lp', 'gp', 'general partner']) and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round']):
             return 'Fundraising'
         
         # Bankruptcy and distressed situations
