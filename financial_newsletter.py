@@ -377,16 +377,31 @@ class FinancialNewsletterBot:
         ]
         exclude_match = any(keyword in text_lower for keyword in exclude_keywords)
         
+        if not (pe_vc_match or additional_match) and not exclude_match:
+            # Check if it's general business/market news for Global Markets section
+            general_business_terms = [
+                'earnings', 'revenue', 'profit', 'loss', 'stock price', 'shares',
+                'market cap', 'dividend', 'analyst', 'forecast', 'guidance',
+                'ceo', 'cfo', 'executive', 'board', 'chairman', 'director',
+                'quarterly results', 'annual report', 'financial results',
+                'market update', 'trading', 'investor', 'shareholder'
+            ]
+            general_business_match = any(term in text_lower for term in general_business_terms)
+            
+            # Allow general business news from major sources for Global Markets
+            major_sources = ['Financial Times', 'Wall Street Journal', 'Bloomberg Markets', 'Bloomberg Business', 'Reuters Business', 'Reuters Markets', 'CNBC']
+            if source_name in major_sources and general_business_match:
+                return True
+        
         return (pe_vc_match or additional_match) and not exclude_match
-    
     def categorize_article(self, text):
         """Categorize articles with enhanced structure"""
         text_lower = text.lower()
         
         # Global Markets (broad financial markets, not PE/VC specific)
-        if any(word in text_lower for word in ['stock market', 'trading', 'index', 'bond market', 'commodity', 'currency', 'forex', 'fed', 'federal reserve', 'central bank', 'interest rate', 'inflation', 'gdp', 'economic data', 'treasury', 'yields']):
+        if any(word in text_lower for word in ['stock market', 'trading', 'index', 'bond market', 'commodity', 'currency', 'forex', 'fed', 'federal reserve', 'central bank', 'interest rate', 'inflation', 'gdp', 'economic data', 'treasury', 'yields', 'earnings', 'revenue', 'profit', 'quarterly results', 'financial results', 'analyst', 'forecast', 'market update', 'investor relations', 'shareholder']):
             return 'Global Markets'
-        
+            
         # Private Equity deals and buyouts
         elif any(word in text_lower for word in ['buyout', 'lbo', 'leveraged buyout', 'take private', 'private equity', 'pe firm', 'portfolio company acquisition']):
             return 'Private Equity'
