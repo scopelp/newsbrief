@@ -420,14 +420,7 @@ class FinancialNewsletterBot:
         # IPOs and public offerings
         elif any(word in text_lower for word in ['ipo', 'public offering', 'listing', 'debut', 'going public', 'spac']):
             return 'IPOs'
-        
-        # Fund raising (PE/VC/Credit fund raises, NOT company fundraising)
-        elif (any(word in text_lower for word in ['fund close', 'fund launch', 'first close', 'final close', 'closes fund', 'raised fund', 'fundraising target', 'capital commitment']) 
-              and any(word in text_lower for word in ['private equity', 'venture capital', 'credit fund', 'debt fund', 'pe firm', 'vc firm', 'buyout fund', 'growth fund']) 
-              and not any(word in text_lower for word in ['startup', 'company raises', 'series', 'funding round', 'mutual fund', 'etf', 'hedge fund', 'sovereign wealth', 'pension fund'])):
-            print(f"   → Categorized as: Fundraising")
-            return 'Fundraising'
-                
+                        
         # Bankruptcy and distressed situations
         elif any(word in text_lower for word in ['bankruptcy', 'chapter 11', 'distressed', 'restructuring', 'liquidation', 'insolvency', 'creditor', 'debtor']):
             return 'Bankruptcy'
@@ -876,7 +869,7 @@ class FinancialNewsletterBot:
         """
         
         # Add categorized content in new structure
-        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'Private Credit', 'IPOs', 'Fundraising', 'Bankruptcy', 'PE Secondaries']
+        category_order = ['Global Markets', 'Private Equity', 'Venture Capital', 'Private Credit', 'IPOs', 'Bankruptcy', 'PE Secondaries']
         
         for category in category_order:
             if category in categorized_articles and categorized_articles[category]:
@@ -906,15 +899,11 @@ class FinancialNewsletterBot:
                     
                     html_content += "</div>"
                     
-                else:
-                    # All other sections use bullet point format
-                    if category == 'Fundraising':
-                        article_limit = 12
-                        section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
                     else:
+                        # All other sections use bullet point format
                         article_limit = 12  # Standard limit for deal sections
                         section_description = ""
-                    
+    
                     html_content += f"""
                     <div class="section">
                         <h2>{self.get_category_emoji(category)} {category}</h2>
@@ -967,7 +956,6 @@ class FinancialNewsletterBot:
             'Venture Capital': '🚀',
             'Private Credit': '💳',
             'IPOs': '📈',
-            'Fundraising': '💰',
             'Bankruptcy': '⚠️',
             'PE Secondaries': '🔄'
         }
