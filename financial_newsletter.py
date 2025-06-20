@@ -19,13 +19,15 @@ class FinancialNewsletterBot:
         
         # Premium PE/VC focused news sources
         self.financial_feeds = {
+            'PE News': 'https://www.penews.com/rss',
             'Private Equity Wire': 'https://www.privateequitywire.co.uk/feed/',
+            'Private Equity International': 'https://www.privateequityinternational.com/feed/',
+            'Buyouts Insider': 'https://www.buyoutsinsider.com/feed/',
             'Financial Times': 'https://www.ft.com/rss/home/us',
             'Wall Street Journal': 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml',
             'Bloomberg Markets': 'https://feeds.bloomberg.com/markets/news.rss',
             'Bloomberg Business': 'https://feeds.bloomberg.com/politics/news.rss',
             'Private Capital Journal': 'https://www.privatecapitaljournal.com/feed/',
-            'Private Equity International': 'https://www.privateequityinternational.com/feed/',
             'Reuters Business': 'https://feeds.reuters.com/reuters/businessNews',
             'Reuters Markets': 'https://feeds.reuters.com/reuters/marketsNews',
             'PE Hub': 'https://www.pehub.com/feed/',
@@ -35,7 +37,9 @@ class FinancialNewsletterBot:
         }
         
         # PE/VC relevant market indicators (updated selection)
-        self.market_symbols = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
+        # REPLACED entire array:
+        # OLD: ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
+        self.market_symbols = ['SPY', 'DIA', 'QQQ', 'IWM', 'EFA', 'CL=F', 'BTC-USD']  # NEW
         
         # Comprehensive PE/VC keywords for better filtering
         self.pe_vc_keywords = [
@@ -190,7 +194,12 @@ class FinancialNewsletterBot:
             try:
                 # Add user agent to avoid blocking
                 headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'application/rss+xml, application/xml, text/xml',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1'
                 }
                 
                 # Parse RSS with custom headers
@@ -242,23 +251,71 @@ class FinancialNewsletterBot:
     def get_alternative_rss(self, source_name, original_url):
         """Get alternative RSS URLs for sources that might have different paths"""
         alternatives = {
-            'Private Equity Wire': 'https://www.privateequitywire.co.uk/rss',
-            'Private Capital Journal': 'https://privatecapitaljournal.com/rss',
-            'Private Equity International': 'https://privateequityinternational.com/rss',
-            'Financial Times': 'https://www.ft.com/rss/companies',
-            'Wall Street Journal': 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml',
-            'Bloomberg Markets': 'https://feeds.bloomberg.com/bpolitics/news.rss',
-            'Bloomberg Business': 'https://feeds.bloomberg.com/technology/news.rss',
-            'Reuters Business': 'https://feeds.reuters.com/reuters/companyNews',
-            'Reuters Markets': 'https://feeds.reuters.com/reuters/JPbusiness',
-            'CNBC': 'https://www.cnbc.com/id/100727362/device/rss/rss.html'
+            'PE News': [
+                'https://www.penews.com/feed',
+                'https://www.penews.com/rss.xml',
+                'https://feeds.feedburner.com/penews'
+            ],
+            'Private Equity Wire': [
+                'https://www.privateequitywire.co.uk/rss',
+                'https://privateequitywire.co.uk/feed',
+                'https://www.privateequitywire.co.uk/rss.xml'
+            ],
+            'Private Equity International': [
+                'https://www.privateequityinternational.com/rss',
+                'https://privateequityinternational.com/feed',
+                'https://feeds.feedburner.com/pei'
+            ],
+            'Buyouts Insider': [
+                'https://www.buyoutsinsider.com/rss',
+                'https://buyoutsinsider.com/feed',
+                'https://www.buyoutsinsider.com/rss.xml'
+            ],
+            'Private Capital Journal': [
+                'https://privatecapitaljournal.com/rss',
+                'https://www.privatecapitaljournal.com/rss.xml'
+            ],
+            'Financial Times': [
+                'https://www.ft.com/rss/companies',
+                'https://www.ft.com/rss/world'
+            ],
+            'Wall Street Journal': [
+                'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml',
+                'https://feeds.a.dj.com/rss/RSSWorldNews.xml'
+            ],
+            'Bloomberg Markets': [
+                'https://feeds.bloomberg.com/bpolitics/news.rss',
+                'https://feeds.bloomberg.com/technology/news.rss'
+            ],
+            'Bloomberg Business': [
+                'https://feeds.bloomberg.com/technology/news.rss',
+                'https://feeds.bloomberg.com/bpolitics/news.rss'
+            ],
+            'Reuters Business': [
+                'https://feeds.reuters.com/reuters/companyNews',
+                'https://feeds.reuters.com/reuters/JPbusiness'
+            ],
+            'Reuters Markets': [
+                'https://feeds.reuters.com/reuters/JPbusiness',
+                'https://feeds.reuters.com/reuters/companyNews'
+            ],
+            'CNBC': [
+                'https://www.cnbc.com/id/100727362/device/rss/rss.html',
+                'https://www.cnbc.com/id/10000664/device/rss/rss.html'
+            ]
         }
-        return alternatives.get(source_name)
-    
+        
+        # Return first alternative for the source
+        if source_name in alternatives and alternatives[source_name]:
+            return alternatives[source_name][0]
+        return None
+        
     def get_source_priority(self, source_name):
         """Assign priority scores to sources (higher = more important)"""
         priority_map = {
             'Private Equity Wire': 10,
+            'PE News': 10,                          # NEW
+            'Buyouts Insider': 10,                  # NEW
             'Private Equity International': 10,
             'Private Capital Journal': 10,
             'Financial Times': 9,
@@ -267,7 +324,7 @@ class FinancialNewsletterBot:
             'Bloomberg Business': 9,
             'Reuters Business': 8,
             'Reuters Markets': 8,
-            'PE Hub': 9,
+            'PE Hub': 10,
             'PitchBook News': 9,
             'CNBC': 7,
             'TechCrunch Startups': 7
@@ -294,8 +351,10 @@ class FinancialNewsletterBot:
         text_lower = text.lower()
         
         # Specialized PE/VC sources are always relevant
-        specialized_sources = ['Private Equity Wire', 'Private Equity International', 'Private Capital Journal', 'PE Hub']
-        if source_name in specialized_sources:
+        specialized_sources = [
+            'PE News', 'Private Equity Wire', 'Private Equity International', 
+            'Buyouts Insider', 'Private Capital Journal', 'PE Hub'
+        ]        if source_name in specialized_sources:
             return True
         
         # For general sources, must contain PE/VC keywords
@@ -437,6 +496,17 @@ class FinancialNewsletterBot:
                 # European financial centers and exchanges
                 'lse', 'london stock exchange', 'ftse', 'dax', 'cac', 'stoxx', 'euronext',
                 'city of london', 'canary wharf', 'la défense', 'frankfurt stock exchange'
+                
+                # Middle East - NEW ADDITION
+                'middle east', 'gulf', 'gcc', 'mena',
+                'saudi arabia', 'saudi', 'riyadh', 'jeddah', 'ksa', 'kingdom of saudi arabia',
+                'qatar', 'qatari', 'doha', 'qatar investment authority', 'qia',
+                'kuwait', 'kuwaiti', 'kuwait city', 'kic', 'kuwait investment corporation',
+                'uae', 'united arab emirates', 'dubai', 'abu dhabi', 'emirates', 'emirati',
+                'adia', 'abu dhabi investment authority', 'mubadala', 'emirates investment authority',
+                'sovereign wealth fund', 'swf', 'pension investment corporation', 'pic',
+                'aramco', 'saudi aramco', 'adnoc', 'emirates nbd', 'first abu dhabi bank',
+                'qatar national bank', 'qnb', 'national bank of kuwait', 'nbk'
             ]
             
             # Count geographic matches with MUCH higher weight (10 points each instead of 3)
@@ -460,7 +530,6 @@ class FinancialNewsletterBot:
                 'korea', 'korean', 'seoul',
                 'indonesia', 'jakarta', 'thailand', 'bangkok',
                 'malaysia', 'kuala lumpur', 'vietnam', 'philippines',
-                'middle east', 'dubai', 'abu dhabi', 'saudi', 'qatar',
                 'africa', 'african', 'south africa', 'nigeria', 'kenya',
                 'latin america', 'brazil', 'brazilian', 'mexico', 'mexican',
                 'argentina', 'chile', 'colombia'
@@ -557,18 +626,16 @@ class FinancialNewsletterBot:
         """
         
         # Enhanced market labels for global view
+        # REPLACED entire dictionary:
         market_labels = {
-            'SPY': 'S&P 500',
-            'QQQ': 'Nasdaq',
-            'VTI': 'US Total Market',
-            'EFA': 'Developed Markets',
-            'EEM': 'Emerging Markets',
-            'TNX': '10-Year Treasury',
-            'GLD': 'Gold',
-            'DXY': 'US Dollar Index',
-            'CL=F': 'Oil (WTI)'
+            'SPY': 'S&P 500',           # EXISTING
+            'DIA': 'Dow Jones',         # NEW
+            'QQQ': 'Nasdaq',            # EXISTING  
+            'IWM': 'Russell 2000',      # NEW
+            'EFA': 'FTSE 100 (via EFA)', # UPDATED
+            'CL=F': 'Oil (WTI)',        # EXISTING
+            'BTC-USD': 'Bitcoin'        # NEW
         }
-        
         # Define order for consistent display
         symbol_order = ['SPY', 'QQQ', 'VTI', 'EFA', 'EEM', 'TNX', 'GLD', 'DXY', 'CL=F']
         
@@ -986,7 +1053,7 @@ def main():
         # For local development - schedule daily
         schedule.every().day.at("07:00").do(newsletter_bot.generate_and_send_newsletter)
         
-        print("🚀 NewsBrief by ScopeLP started. Next newsletter: 7:00 AM daily")
+        print("🚀 ScopeSignal by ScopeLP started. Next newsletter: 7:00 AM daily")
         
         # Uncomment to test immediately:
         # newsletter_bot.generate_and_send_newsletter()
