@@ -186,7 +186,7 @@ class FinancialNewsletterBot:
             print(f"❌ Error in get_market_data: {e}")
             return {}
     
-    def fetch_financial_news(self, max_articles=30):
+    def fetch_financial_news(self, max_articles=60):
         """Fetch PE/VC focused financial news from premium sources"""
         all_articles = []
         
@@ -318,16 +318,16 @@ class FinancialNewsletterBot:
             'Buyouts Insider': 10,                  # NEW
             'Private Equity International': 10,
             'Private Capital Journal': 10,
-            'Financial Times': 9,
-            'Wall Street Journal': 9,
-            'Bloomberg Markets': 9,
-            'Bloomberg Business': 9,
-            'Reuters Business': 8,
-            'Reuters Markets': 8,
+            'Financial Times': 10,
+            'Wall Street Journal': 10,
+            'Bloomberg Markets': 10,
+            'Bloomberg Business': 10,
+            'Reuters Business': 10,
+            'Reuters Markets': 9,
             'PE Hub': 10,
             'PitchBook News': 9,
-            'CNBC': 7,
-            'TechCrunch Startups': 7
+            'CNBC': 9,
+            'TechCrunch Startups': 9
         }
         return priority_map.get(source_name, 5)
     
@@ -899,10 +899,10 @@ class FinancialNewsletterBot:
                 else:
                     # All other sections use bullet point format
                     if category == 'Fundraising':
-                        article_limit = 8
+                        article_limit = 12
                         section_description = "PE/VC/Credit fund closes, LP activity, and institutional fundraising"
                     else:
-                        article_limit = 8  # Standard limit for deal sections
+                        article_limit = 12  # Standard limit for deal sections
                         section_description = ""
                     
                     html_content += f"""
