@@ -897,13 +897,13 @@ class FinancialNewsletterBot:
                         </div>
                         """
                     
-                    html_content += "</div>"
+                html_content += "</div>"
                     
-                    else:
-                        # All other sections use bullet point format
-                        article_limit = 12  # Standard limit for deal sections
-                        section_description = ""
-    
+                else:
+                    # All other sections use bullet point format
+                    article_limit = 12  # Standard limit for deal sections
+                    section_description = ""
+
                     html_content += f"""
                     <div class="section">
                         <h2>{self.get_category_emoji(category)} {category}</h2>
