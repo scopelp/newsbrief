@@ -354,7 +354,8 @@ class FinancialNewsletterBot:
         specialized_sources = [
             'PE News', 'Private Equity Wire', 'Private Equity International', 
             'Buyouts Insider', 'Private Capital Journal', 'PE Hub'
-        ]        if source_name in specialized_sources:
+        ]        
+        if source_name in specialized_sources:
             return True
         
         # For general sources, must contain PE/VC keywords
